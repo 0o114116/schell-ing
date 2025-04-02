@@ -54,9 +54,11 @@ impl Neighborhood {
                     match self.0[i][j] {
                         None => {}
                         Some(_) => {
-                            if self.equal_neighbors(i, j) < pref {
+                            if self.equal_neighbors(i, j, self.0[i][j].unwrap()) < pref {
                                 if self.switch_spots(i, j, pref) {
                                     has_changes = true;
+
+                                    println!("{}", self)
                                 }
                             }
                         }
@@ -64,10 +66,15 @@ impl Neighborhood {
                 }
             }
         }
-
     }
 
-    fn equal_neighbors(&self, row: usize, cell: usize) -> u32 {
+    fn count_neighbors(
+        &self,
+        row: usize,
+        cell: usize,
+        color: Color,
+        condition: fn(Color, Color) -> bool,
+    ) -> u32 {
         let mut count = 0;
         let neighbors: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
 
@@ -79,7 +86,7 @@ impl Neighborhood {
                 match self.0[y as usize][x as usize] {
                     None => {}
                     Some(c) => {
-                        if c == self.0[row][cell].unwrap() {
+                        if condition(c, color) {
                             count += 1;
                         }
                     }
@@ -90,27 +97,12 @@ impl Neighborhood {
         count
     }
 
-    fn diff_neighbors(&self, row: usize, cell: usize) -> u32 {
-        let mut count = 0;
-        let neighbors: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+    fn equal_neighbors(&self, row: usize, cell: usize, color: Color) -> u32 {
+        self.count_neighbors(row, cell, color, |c, c2| c == c2)
+    }
 
-        for coord in neighbors {
-            let y = coord.0 + row as isize;
-            let x = coord.1 + cell as isize;
-
-            if y >= 0 && x >= 0 && y < self.0.len() as isize && x < self.0[0].len() as isize {
-                match self.0[y as usize][x as usize] {
-                    None => {}
-                    Some(c) => {
-                        if c != self.0[row][cell].unwrap() {
-                            count += 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        count
+    fn diff_neighbors(&self, row: usize, cell: usize, color: Color) -> u32 {
+        self.count_neighbors(row, cell, color, |c, c2| c != c2)
     }
 
     fn switch_spots(&mut self, row: usize, cell: usize, pref: u32) -> bool {
@@ -120,7 +112,7 @@ impl Neighborhood {
             for j in 0..self.0[i].len() {
                 match self.0[i][j] {
                     None => {
-                        if self.equal_neighbors(i, j) >= pref {
+                        if self.equal_neighbors(i, j, color) >= pref {
                             self.0[i][j] = Some(color);
                             self.0[row][cell] = None;
 
@@ -138,8 +130,8 @@ impl Neighborhood {
                     None => {}
                     Some(c) => {
                         if color != c {
-                            if self.diff_neighbors(i, j) >= pref {
-                                if self.diff_neighbors(row, cell) >= pref {
+                            if self.diff_neighbors(i, j, c) >= pref {
+                                if self.diff_neighbors(row, cell, color) >= pref {
                                     self.0[i][j] = Some(color);
                                     self.0[row][cell] = Some(c);
 
@@ -172,5 +164,5 @@ impl fmt::Display for Neighborhood {
 }
 
 fn main() {
-    Neighborhood::random(5, 5).optimize(2);
+    Neighborhood::random(10, 5).optimize(2);
 }
