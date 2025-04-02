@@ -4,6 +4,8 @@ use std::{cmp::PartialEq, fmt};
 // TODO: eventually, allow comparison and switching between different neighborhoods
 // TODO: eventually, allow for more specific preferences (indifference, mixes, etc.)
 
+// TODO: add incremental preferences (if it cannot find X neighbors, try for X-1)
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Color {
     Black,
@@ -46,8 +48,7 @@ impl Neighborhood {
         neighborhood
     }
 
-    // TODO: allow for different preferences for each color
-    fn optimize(&mut self, pref: u32) {
+    fn optimize(&mut self, pref: [u32; 2]) {
         let mut has_changes = true;
 
         while has_changes {
@@ -57,8 +58,8 @@ impl Neighborhood {
                 for j in 0..self.0[i].len() {
                     match self.0[i][j] {
                         None => {}
-                        Some(_) => {
-                            if self.equal_neighbors(i, j, self.0[i][j].unwrap()) < pref {
+                        Some(c) => {
+                            if self.equal_neighbors(i, j, c, None) < pref[c as usize] {
                                 if self.switch_spots(i, j, pref) {
                                     has_changes = true;
 
@@ -78,6 +79,7 @@ impl Neighborhood {
         cell: usize,
         color: Color,
         condition: fn(Color, Color) -> bool,
+        og_pos: Option<[usize; 2]>,
     ) -> u32 {
         let mut count = 0;
         let neighbors: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
@@ -90,8 +92,20 @@ impl Neighborhood {
                 match self.0[y as usize][x as usize] {
                     None => {}
                     Some(c) => {
-                        if condition(c, color) {
-                            count += 1;
+                        match og_pos {
+                            None => {
+                                if condition(c, color) {
+                                    count += 1;
+                                }
+                            }
+                            Some(pos) => {
+                                // TODO: i'm pretty sure this isn't implemented correctly
+                                if pos[0] as isize != y && pos[1] as isize != x {
+                                    if condition(c, color) {
+                                        count += 1;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -101,23 +115,37 @@ impl Neighborhood {
         count
     }
 
-    fn equal_neighbors(&self, row: usize, cell: usize, color: Color) -> u32 {
-        self.count_neighbors(row, cell, color, |c, c2| c == c2)
+    fn equal_neighbors(
+        &self,
+        row: usize,
+        cell: usize,
+        color: Color,
+        og_pos: Option<[usize; 2]>,
+    ) -> u32 {
+        self.count_neighbors(row, cell, color, |c, c2| c == c2, og_pos)
     }
 
-    fn diff_neighbors(&self, row: usize, cell: usize, color: Color) -> u32 {
-        self.count_neighbors(row, cell, color, |c, c2| c != c2)
+    fn diff_neighbors(
+        &self,
+        row: usize,
+        cell: usize,
+        color: Color,
+        og_pos: Option<[usize; 2]>,
+    ) -> u32 {
+        self.count_neighbors(row, cell, color, |c, c2| c != c2, og_pos)
     }
 
-    // TODO: allow for different preferences for each color
-    fn switch_spots(&mut self, row: usize, cell: usize, pref: u32) -> bool {
+    fn switch_spots(&mut self, row: usize, cell: usize, pref: [u32; 2]) -> bool {
         let color = self.0[row][cell].unwrap();
 
         for i in 0..self.0.len() {
             for j in 0..self.0[i].len() {
                 match self.0[i][j] {
                     None => {
-                        if self.equal_neighbors(i, j, color) >= pref {
+                        // TODO: The None here should be Some([row, cell]) after I fix check_neighbors
+                        if self.equal_neighbors(i, j, color, None)
+                            >= pref[color as usize]
+                        {
                             self.0[i][j] = Some(color);
                             self.0[row][cell] = None;
 
@@ -135,8 +163,12 @@ impl Neighborhood {
                     None => {}
                     Some(c) => {
                         if color != c {
-                            if self.diff_neighbors(i, j, c) >= pref {
-                                if self.diff_neighbors(row, cell, color) >= pref {
+                            // TODO: The None here should be Some([row, cell]) when I fix count_neighbors
+                            if self.diff_neighbors(i, j, c, None) >= pref[color as usize] {
+                                // TODO: The None here should be Some([i, j]) when I fix count_neighbors
+                                if self.diff_neighbors(row, cell, color, Some([i, j]))
+                                    >= pref[c as usize]
+                                {
                                     self.0[i][j] = Some(color);
                                     self.0[row][cell] = Some(c);
 
@@ -169,5 +201,5 @@ impl fmt::Display for Neighborhood {
 }
 
 fn main() {
-    Neighborhood::random(10, 5).optimize(2);
+    Neighborhood::random(10, 5).optimize([2, 2]);
 }
