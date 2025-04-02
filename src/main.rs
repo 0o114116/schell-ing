@@ -1,6 +1,9 @@
 use rand::Rng;
 use std::{cmp::PartialEq, fmt};
 
+// TODO: eventually, allow comparison and switching between different neighborhoods
+// TODO: eventually, allow for more specific preferences (indifference, mixes, etc.)
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Color {
     Black,
@@ -43,6 +46,7 @@ impl Neighborhood {
         neighborhood
     }
 
+    // TODO: allow for different preferences for each color
     fn optimize(&mut self, pref: u32) {
         let mut has_changes = true;
 
@@ -105,6 +109,7 @@ impl Neighborhood {
         self.count_neighbors(row, cell, color, |c, c2| c != c2)
     }
 
+    // TODO: allow for different preferences for each color
     fn switch_spots(&mut self, row: usize, cell: usize, pref: u32) -> bool {
         let color = self.0[row][cell].unwrap();
 
