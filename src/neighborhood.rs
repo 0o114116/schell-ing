@@ -27,7 +27,7 @@ impl Neighborhood {
         neighborhood
     }
 
-    pub(crate) fn optimize(&mut self, pref: [u32; 2]) {
+    pub(crate) fn optimize(&mut self, pref: [u32; 2]) -> &mut Self {
         let mut has_changes = true;
 
         while has_changes {
@@ -38,23 +38,28 @@ impl Neighborhood {
                 for j in 0..self.0[i].len() {
                     // for every cell in the row...
                     match self.0[i][j] {
-                        None => {}
                         Some(c) => {
                             // if the cell is not empty...
-                            // and has fewer equal neighbors than what it would like...
-                            if self.equal_neighbors(i, j, c, None) < pref[c as usize] {
-                                // try to move
-                                if self.switch_spots(i, j, pref) {
-                                    has_changes = true;
+                            // attempt to satisfy preferences
+                            for k in 0..pref[c as usize] {
+                                if self.equal_neighbors(i, j, c, None) < pref[c as usize]-k {
+                                    // try to move
+                                    if self.switch_spots(i, j, [pref[0]-k, pref[1]-k]) {
+                                        has_changes = true;
 
-                                    println!("{}", self)
+                                        println!("{}", self);
+                                        break
+                                    }
                                 }
                             }
                         }
+                        _ => {}
                     }
                 }
             }
         }
+
+        self
     }
 
     fn count_neighbors(
