@@ -27,24 +27,24 @@ impl Neighborhood {
         neighborhood
     }
 
-    pub(crate) fn optimize(&mut self, pref: [u32; 2]) -> &mut Self {
+    pub fn optimize(&mut self, pref: [u32; 2]) -> &mut Self {
         let mut has_changes = true;
 
         while has_changes {
             has_changes = false;
 
-            for i in 0..self.0.len() {
+            for row in 0..self.0.len() {
                 // for every row in the neighborhood...
-                for j in 0..self.0[i].len() {
+                for cell in 0..self.0[row].len() {
                     // for every cell in the row...
-                    match self.0[i][j] {
-                        Some(c) => {
-                            // if the cell is not empty...
+                    match self.0[row][cell] {
+                        // if the cell is not empty...
+                        Some(color) => {
                             // attempt to satisfy preferences
-                            for k in 0..pref[c as usize] {
-                                if self.equal_neighbors(i, j, c, None) < pref[c as usize]-k {
+                            for i in 0..pref[color as usize] {
+                                if self.equal_neighbors(row, cell, color, None) < pref[color as usize]- i {
                                     // try to move
-                                    if self.switch_spots(i, j, [pref[0]-k, pref[1]-k]) {
+                                    if self.switch_spots(row, cell, [pref[0]- i, pref[1]- i]) {
                                         has_changes = true;
 
                                         println!("{}", self);
@@ -87,16 +87,16 @@ impl Neighborhood {
                         match og_pos {
                             None => {
                                 if condition(c, color) {
-                                    count += 1; // count the neighbor if it satisfies the
-                                } // condition
+                                    count += 1;
+                                }
                             }
+                            // and, given an original position...
                             Some(pos) => {
-                                // and, given an original position
                                 // if the neighbor of a viable spot is not the unhappy individual...
                                 if pos[0] as isize != y && pos[1] as isize != x {
                                     if condition(c, color) {
-                                        count += 1; // count the neighbor if it satisfies the
-                                    } // condition
+                                        count += 1;
+                                    } //
                                 }
                             }
                         }
