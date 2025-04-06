@@ -42,13 +42,20 @@ impl Neighborhood {
                         Some(color) => {
                             // attempt to satisfy preferences
                             for i in 0..pref[color as usize] {
-                                if self.equal_neighbors(row, cell, color, None) < pref[color as usize]- i {
+                                if self.equal_neighbors(row, cell, color, None)
+                                    < pref[color as usize] - i
+                                {
                                     // try to move
-                                    if self.switch_spots(row, cell, [pref[0]- i, pref[1]- i]) {
+                                    if self.switch_spots(
+                                        row,
+                                        cell,
+                                        [pref[0] - i, pref[1] - i],
+                                        false,
+                                    ) {
                                         has_changes = true;
 
                                         println!("{}", self);
-                                        break
+                                        break;
                                     }
                                 }
                             }
@@ -96,7 +103,7 @@ impl Neighborhood {
                                 if pos[0] as isize != y && pos[1] as isize != x {
                                     if condition(c, color) {
                                         count += 1;
-                                    } //
+                                    }
                                 }
                             }
                         }
@@ -128,49 +135,54 @@ impl Neighborhood {
         self.count_neighbors(row, cell, color, |c, c2| c != c2, og_pos)
     }
 
-    fn switch_spots(&mut self, row: usize, cell: usize, pref: [u32; 2]) -> bool {
+    fn switch_spots(
+        &mut self,
+        row: usize,
+        cell: usize,
+        pref: [u32; 2],
+        checked_empty: bool,
+    ) -> bool {
         let color = self.0[row][cell].unwrap();
 
         for i in 0..self.0.len() {
             for j in 0..self.0[i].len() {
                 match self.0[i][j] {
                     None => {
-                        if self.equal_neighbors(i, j, color, Some([row, cell]))
-                            >= pref[color as usize]
-                        {
-                            self.0[i][j] = Some(color);
-                            self.0[row][cell] = None;
-
-                            return true;
-                        }
-                    }
-                    Some(_) => {}
-                }
-            }
-        }
-
-        for i in 0..self.0.len() {
-            for j in 0..self.0[i].len() {
-                match self.0[i][j] {
-                    None => {}
-                    Some(c) => {
-                        if color != c {
-                            if self.diff_neighbors(i, j, c, Some([row, cell]))
+                        if !checked_empty {
+                            if self.equal_neighbors(i, j, color, Some([row, cell]))
                                 >= pref[color as usize]
                             {
-                                if self.diff_neighbors(row, cell, color, Some([i, j]))
-                                    >= pref[c as usize]
-                                {
-                                    self.0[i][j] = Some(color);
-                                    self.0[row][cell] = Some(c);
+                                self.0[i][j] = Some(color);
+                                self.0[row][cell] = None;
 
-                                    return true;
+                                return true;
+                            }
+                        }
+                    }
+                    Some(c) => {
+                        if checked_empty {
+                            if color != c {
+                                if self.diff_neighbors(i, j, c, Some([row, cell]))
+                                    >= pref[color as usize]
+                                {
+                                    if self.diff_neighbors(row, cell, color, Some([i, j]))
+                                        >= pref[c as usize]
+                                    {
+                                        self.0[i][j] = Some(color);
+                                        self.0[row][cell] = Some(c);
+
+                                        return true;
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        }
+
+        if !checked_empty {
+            return self.switch_spots(row, cell, pref, true);
         }
 
         false
