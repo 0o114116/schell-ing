@@ -27,7 +27,7 @@ impl Neighborhood {
         neighborhood
     }
 
-    pub fn optimize(&mut self, pref: [u32; 2]) -> &mut Self {
+    pub fn optimize(&mut self, pref: [(u32, bool); 2]) -> &mut Self {
         let mut has_changes = true;
 
         while has_changes {
@@ -41,15 +41,19 @@ impl Neighborhood {
                         // if the cell is not empty...
                         Some(color) => {
                             // attempt to satisfy preferences
-                            for i in 0..pref[color as usize] {
+                            for i in 0..pref[color as usize][0] {
+                                if i > 0 && pref[color as usize][1] {
+                                    break
+                                }
+
                                 if self.equal_neighbors(row, cell, color, None)
-                                    < pref[color as usize] - i
+                                    < pref[color as usize][0] - i
                                 {
                                     // try to move
                                     if self.switch_spots(
                                         row,
                                         cell,
-                                        [pref[0] - i, pref[1] - i],
+                                        [pref[0][0] - i, pref[1][0] - i],
                                         false,
                                     ) {
                                         has_changes = true;
@@ -150,7 +154,7 @@ impl Neighborhood {
                     None => {
                         if !checked_empty {
                             if self.equal_neighbors(i, j, color, Some([row, cell]))
-                                >= pref[color as usize]
+                                >= pref[color as usize][0]
                             {
                                 self.0[i][j] = Some(color);
                                 self.0[row][cell] = None;
@@ -163,10 +167,10 @@ impl Neighborhood {
                         if checked_empty {
                             if color != c {
                                 if self.diff_neighbors(i, j, c, Some([row, cell]))
-                                    >= pref[color as usize]
+                                    >= pref[color as usize][0]
                                 {
                                     if self.diff_neighbors(row, cell, color, Some([i, j]))
-                                        >= pref[c as usize]
+                                        >= pref[c as usize][0]
                                     {
                                         self.0[i][j] = Some(color);
                                         self.0[row][cell] = Some(c);
